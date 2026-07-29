@@ -15,6 +15,7 @@ class Linc {
     macro public static function touch() : Array<Field> {
 
         var _fields = Context.getBuildFields();
+        if (_fields == null) return null;
 
         _fields.push({
             name: '__touch', pos: Context.currentPos(),
@@ -38,6 +39,10 @@ class Linc {
         var _pos =  Context.currentPos();
         var _pos_info = _pos.getInfos();
         var _class = Context.getLocalClass();
+
+        if (_class == null || _lib == null || _lib.length == 0) {
+            return Context.getBuildFields();
+        }
 
         var _source_path = Path.directory(_pos_info.file);
         if( !Path.isAbsolute(_source_path) ) {
