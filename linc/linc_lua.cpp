@@ -50,6 +50,7 @@ void pushcfunction(lua_State* l, ::cpp::Function<int(lua_State*)> fn) {
 int getstack(lua_State *L, int level, Dynamic ar){
     if(!L || ar == null()) return 0;
     lua_Debug dbg;
+    std::memset(&dbg, 0, sizeof(lua_Debug));
     int ret = lua_getstack(L, level, &dbg);
     ar->__FieldRef(HX_CSTRING("i_ci")) = (int)dbg.i_ci;
     return ret;
@@ -58,12 +59,13 @@ int getstack(lua_State *L, int level, Dynamic ar){
 int getinfo(lua_State *L, const char *what, Dynamic ar){
     if(!L || !what || ar == null()) return 0;
     lua_Debug dbg;
+    std::memset(&dbg, 0, sizeof(lua_Debug));
     dbg.i_ci = ar->__FieldRef(HX_CSTRING("i_ci"));
     int ret = lua_getinfo(L, what, &dbg);
-    if (strchr(what, 'S')){
+    if (std::strchr(what, 'S')){
         if (dbg.source)
             ar->__FieldRef(HX_CSTRING("source")) = ::String(dbg.source);
-        if (dbg.short_src[0] != '\0')
+        if (dbg.short_src && dbg.short_src[0] != '\0')
             ar->__FieldRef(HX_CSTRING("short_src")) = ::String(dbg.short_src);
         if (dbg.linedefined != 0)
             ar->__FieldRef(HX_CSTRING("linedefined")) = (int)dbg.linedefined;
@@ -72,17 +74,17 @@ int getinfo(lua_State *L, const char *what, Dynamic ar){
         if (dbg.what)
             ar->__FieldRef(HX_CSTRING("what")) = ::String(dbg.what);
     }
-    if (strchr(what, 'n')){
+    if (std::strchr(what, 'n')){
         if (dbg.name)
             ar->__FieldRef(HX_CSTRING("name")) = ::String(dbg.name);
         if (dbg.namewhat)
             ar->__FieldRef(HX_CSTRING("namewhat")) = ::String(dbg.namewhat);
     }
-    if (strchr(what, 'l')){
+    if (std::strchr(what, 'l')){
         if (dbg.currentline != 0)
             ar->__FieldRef(HX_CSTRING("currentline")) = (int)dbg.currentline;
     }
-    if (strchr(what, 'u')){
+    if (std::strchr(what, 'u')){
         if (dbg.nups != 0)
             ar->__FieldRef(HX_CSTRING("nups")) = (int)dbg.nups;
     }
@@ -95,14 +97,21 @@ namespace lual {
 
 ::String checklstring(lua_State *l, int numArg, size_t *len){
     if(!l) return ::String("");
-    const char* s = luaL_checklstring(l, numArg, len);
+    int top = lua_gettop(l);
+    if (numArg < 1 || numArg > top || lua_isnoneornil(l, numArg)) return ::String("");
+    const char* s = lua_tolstring(l, numArg, len);
     return s ? ::String(s) : ::String("");
 }
 
 ::String optlstring(lua_State *l, int numArg, const char *def, size_t *len){
     if(!l) return ::String("");
-    const char* s = luaL_optlstring(l, numArg, def, len);
-    return s ? ::String(s) : ::String("");
+    int top = lua_gettop(l);
+    if (numArg < 1 || numArg > top || lua_isnoneornil(l, numArg)) {
+        if (len && def) *len = std::strlen(def);
+        return def ? ::String(def) : ::String("");
+    }
+    const char* s = lua_tolstring(l, numArg, len);
+    return s ? ::String(s) : (def ? ::String(def) : ::String(""));
 }
 
 ::String prepbuffer(luaL_Buffer *B){
@@ -122,18 +131,22 @@ namespace lual {
 
 ::String checkstring(lua_State *L, int n){
     if(!L) return ::String("");
-    const char* s = luaL_checkstring(L, n);
+    int top = lua_gettop(L);
+    if (n < 1 || n > top || lua_isnoneornil(L, n)) return ::String("");
+    const char* s = lua_tostring(L, n);
     return s ? ::String(s) : ::String("");
 }
 
 ::String optstring(lua_State *L, int n, const char *d){
     if(!L) return ::String("");
-    const char* s = luaL_optstring(L, n, d);
-    return s ? ::String(s) : ::String("");
+    int top = lua_gettop(L);
+    if (n < 1 || n > top || lua_isnoneornil(L, n)) return d ? ::String(d) : ::String("");
+    const char* s = lua_tostring(L, n);
+    return s ? ::String(s) : (d ? ::String(d) : ::String(""));
 }
 
 void error(lua_State *L, const char* fmt) {
-    if(L && fmt) luaL_error(L, fmt, "");
+    if(L && fmt) luaL_error(L, "%s", fmt);
 }
 
 ::String ltypename(lua_State *L, int idx){
