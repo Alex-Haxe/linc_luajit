@@ -181,24 +181,33 @@ static HxTraceFN print_fn = 0;
 
 static int hx_trace(lua_State* L){
     if(!L) return 0;
-    std::stringstream buffer;
+    luaL_Buffer b;
+    luaL_buffinit(L, &b);
     int n = lua_gettop(L);
     lua_getglobal(L,"tostring");
     for (int i = 1; i <= n; ++i){
         lua_pushvalue(L,-1);
         lua_pushvalue(L,i);
-        lua_call(L,1,1);
+        if (lua_pcall(L,1,1,0) != 0) {
+            lua_pop(L,2);
+            return luaL_error(L,"error in tostring during print");
+        }
         size_t len = 0;
         const char* s = lua_tolstring(L,-1,&len);
-        if (!s)
+        if (!s) {
+            lua_pop(L,2);
             return luaL_error(L,"tostring must return a string");
+        }
         if (i > 1)
-            buffer << "\t";
-        buffer << s;
+            luaL_addstring(&b, "\t");
+        luaL_addlstring(&b, s, len);
         lua_pop(L,1);
     }
+    luaL_pushresult(&b);
+    const char* final_str = lua_tostring(L, -1);
     if (print_fn != null())
-        print_fn(::String(buffer.str().c_str()));
+        print_fn(::String(final_str ? final_str : ""));
+    lua_pop(L,2);
     return 0;
 }
 
