@@ -1,10 +1,10 @@
 {
 	"name": "linc_luajit",
-	"url": "https://github.com/ChanceXML/linc_luajit",
+	"url": "https://github.com/Alex-Haxe/linc_luajit",
 	"license": "MIT",
-	"tags": ["lua","luajit","linc","bindings"],
+	"tags": ["lua","luajit","linc","bindings","android"],
 	"description": "Haxe/hxcpp @:native bindings for LuaJIT.",
 	"version": "0.0.8",
 	"releasenote": "",
-	"contributors": ["ChanceXML", "Poll-st", "Misthx", "Github-ActionsBot"]
+	"contributors": ["Alex-Haxe", "Asteriskuu", "Misthx", "Github-ActionsBot"]
 }
